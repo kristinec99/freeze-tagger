@@ -2,18 +2,12 @@
 #
 #   visualization.py
 #
+
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from typing import NamedTuple
-
-# Define the possible status levels for each state.
-WALL      = 0
-UNKNOWN   = 1
-ONDECK    = 2
-PROCESSED = 3
-PLAYER    = 4
 
 #
 #   Defines points based on an M (rows) x N (column) grid.  The X-axis
@@ -27,14 +21,8 @@ class Point(NamedTuple):
     y: int
     x: int
     
-    def center(self, diameter):
-        return Point(self.x + diameter/2, self.y + diameter/2)
-
-# Generates a random color
-def random_color():
-    rgbl=[255,0,0]
-    random.shuffle(rgbl)
-    return tuple(rgbl)
+    # def center(self, diameter):
+    #     return Point(self.x + diameter/2, self.y + diameter/2)
 
 ######################################################################
 #
@@ -54,19 +42,15 @@ def showgrid(state):
     plt.close()
 
     # Create the figure and axes.
-    fig = plt.figure()
-    ax = plt.axes()
+    fig, ax = plt.subplots()
+    ax.set_xlim((0, M))
+    ax.set_ylim((0, N))
 
     # turn off the axis labels
     ax.axis('off')
 
     # Set diameter of circle
-    diameter = 1
-
-    # Draw the robot and players
-    if state == PLAYER:
-        circ = Circle(p.center(diameter), diameter/2, color = random_color())
-    ax.add_patch(circ)   
+    diameter = 1 
 
     # Create the color range.
     color = np.ones((M,N,3))
@@ -74,12 +58,32 @@ def showgrid(state):
         for n in range(N):
             if state[m,n] == WALL:
                 color[m,n,0:3] = np.array([0.0, 0.0, 0.0])   # Black
+            if state[m,n] == ROBOT:
+                color[m,n,0:3] = np.array([0.0, 0.0, 0.0])   # Black
+            else:
+                color[m,n,0:3] = np.array([0.0, 0.0, 0.0])   # Black
+    
+    # Draw the robot and players
+    for y in range(M+1):
+        for x in range(N+1):
+            # Draw the robot
+            if state[y, x] == ROBOT:
+                circ = Circle(p.center(diameter), diameter/2, color = 'k')
+                ax.add_patch(circ) 
+
+            # Draw the players with the corresponding color
+            for i in player_colors:
+                if state[y, x] == PLAYER[i]:
+                    circ = Circle(p.center(diameter), diameter/2, color = player_colors[i])
+                    ax.add_patch(circ) 
+    
 
     # Draw map points
-    # for point in points:
-    #     p = point
-    #     circ = Circle(p.center(diameter), diameter/2, color=color[p.y, p.x, 0:3])
-    #     ax.add_patch(circ)
+    for y in range(M+1):
+        for x in range(N+1):
+            p = Point(y,x)
+            circ = plt.Circle(p, diameter/10, color='tab:gray')
+            ax.add_patch(circ)  
 
     # Force the figure to pop up.
     plt.pause(0.001)
