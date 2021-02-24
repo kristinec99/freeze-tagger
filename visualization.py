@@ -15,6 +15,12 @@ from typing import NamedTuple
 #   (top downward).
 #
 
+player_num = 1
+WALL        = 0
+UNKNOWN     = 1
+ROBOT       = 2
+PLAYERS     = [i + 3 for i in range(player_num)]
+
 class Point(NamedTuple):
     """A point in 2D, usually the center of a grid cell."""
 

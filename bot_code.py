@@ -2,13 +2,9 @@
 #
 #   bot_code.py
 #
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-from robot_utils import *
 from player_utils import Player
+from robot_utils import Robot
 from visualization import *
-
 
 # ######################################################################
 # #
@@ -27,57 +23,35 @@ M = 26
 N = 26
 
 # Define the possible status levels for each state.
-WALL        = 0
-UNKNOWN     = 1
-ROBOT       = 2
-PLAYERS     = [i + 3 for i in range(player_num)]
+WALL = 0
+UNKNOWN = 1
+ROBOT = 2
+PLAYERS = [i + 3 for i in range(player_num)]
 
 # Initialize states as unknown
-state = np.ones((M,N)) * UNKNOWN
+state = np.ones((M, N)) * UNKNOWN
 
 for i in range(player_num):
-    player = Player(obstacles = obstacles, identifier = i)
-    player_colors.append(player.color) 
-    state[player.y, player.x] == PLAYERS[i]
+    player = Player(obstacles=obstacles, identifier=i)
+    player_colors.append(player.color)
+    state[player.y, player.x] = PLAYERS[i]
     players.append(player)
 
-robot = Robot(players = players, obstacles = obstacles, y = 25, x = 25)
-state[robot.y, robot.x] == ROBOT
+robot = Robot(players=players, obstacles=obstacles, y=25, x=25)
+state[robot.y, robot.x] = ROBOT
 
 while players:
     for player in players:
         player.Walk()
         player.t = player.t + dt
+        state[player.y, player.x] = PLAYERS[i]
     target = robot.Sensor(players)
     robot.Drive(target)
-
+    state[robot.y, robot.x] = ROBOT
+    showgrid(state)
 # Update/show the grid and show the players and robot.
 showgrid(state)
 input('Hit return to continue')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # # Defines counter for each state; if ondeck is empty, search failed
 # def counter():
