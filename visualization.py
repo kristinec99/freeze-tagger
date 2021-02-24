@@ -9,18 +9,6 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from typing import NamedTuple
 
-#
-#   Defines points based on an M (rows) x N (column) grid.  The X-axis
-#   will be the columns (to the right) and the Y-axis will be the rows
-#   (top downward).
-#
-
-player_num = 1
-WALL        = 0
-UNKNOWN     = 1
-ROBOT       = 2
-PLAYERS     = [i + 3 for i in range(player_num)]
-
 class Point(NamedTuple):
     """A point in 2D, usually the center of a grid cell."""
 
@@ -44,8 +32,8 @@ def showgrid(state):
     M = np.size(state, axis=0)
     N = np.size(state, axis=1)
 
-    # Close the old figure.
-    plt.close()
+    # # Close the old figure.
+    # plt.close()
 
     # Create the figure and axes.
     fig, ax = plt.subplots()
