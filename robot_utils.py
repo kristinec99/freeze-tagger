@@ -22,7 +22,7 @@
 #
 #
 import random
-
+from copy import deepcopy
 import numpy as np
 
 
@@ -36,7 +36,7 @@ import numpy as np
 #    fire at a distance of (index+1).
 #
 class Robot():
-    def __init__(self, obstacles=[], y=25, x=25, vely=0, velx=0, radius=.5, dt=.1, accel=1, \
+    def __init__(self, players = [] ,obstacles=[], y=25, x=25, vely=0, velx=0, radius=.5, dt=.1, accel=1, \
                  probCmd=1.0, probProximal=[[1.0, 50]], t=0):
         # Check the positional arguments.
         assert (y >= 0 + radius) and (y <= 50 - radius), "Illegal y"
@@ -46,6 +46,7 @@ class Robot():
         self.dt = dt
         self.t = t
         self.obstacles = obstacles
+        self.players = players
         self.y = y
         self.vely = vely
         self.x = x
@@ -56,12 +57,14 @@ class Robot():
         self.probProximal = probProximal
 
         # Pick a valid starting location (if not already given).
+        invalid_starts = deepcopy(self.obstacles)
+        invalid_starts.extend(self.players)
         while True:
             if not self.x or not self.y:
                 self.y = random.randrange(0, 50)
                 self.x = random.randrange(0, 50)
             counter = 0
-            for obstacle in self.obstacles:
+            for obstacle in invalid_starts :
                 if np.sqrt((self.x - obstacle.x) ** 2 + (self.y - obstacle.y) ** 2) <= obstacle.radius:
                     counter = counter + 1
             if counter == 0:
@@ -90,15 +93,28 @@ class Robot():
         if np.sqrt(np.sqrt((self.x - target[0]) ** 2 + (self.y - target[1]) ** 2)) < target[2] and target[3] >= 0:
             self.Freeze(target, players)
             return
-        for obstacle in self.obstacles:
-            while self.lineIntersectCircle(self.x, target[0], self.y, target[1], obstacle.x, obstacle.y,
-                                           obstacle.radius):
-                target = [random.randrange(0, 50), random.randrange(0, 50)]
+        target = [random.randrange(0, 50), random.randrange(0, 50)]
+
+        while True: # if the target requires going through an obstacle, repick target
+            counter = 0
+            for obstacle in self.obstacles:
+                if self.lineIntersectCircle(self.x, target[0], self.y, target[1], obstacle.x, obstacle.y,
+                                        obstacle.radius):
+                    counter = counter + 1
+                if np.sqrt((self.x - obstacle.x) ** 2 + (self.y - obstacle.y) ** 2) <= obstacle.radius: # if its going to hit the wall or another player, stop
+                    self.velx = 0 
+                    self.vely = 0
+                    return
+                return
+            if counter == 0:
+                break 
+            target = [random.randrange(0, 50), random.randrange(0, 50)]
                 # old_target = target
                 # target = [random.randrange(min(self.x, old_target[0]) - abs(self.x - old_target[0]) * .25,
                 #                            max(self.x, old_target[0]) + abs(self.x - old_target[0]) * .25),
                 #           random.randrange(min(self.y, old_target[1]) - abs(self.y - old_target[1]) * .25,
                 #                            max(self.y, old_target[1]) + abs(self.y - old_target[1]) * .25)]
+        
         vely = self.vely + (-y + target[1] + 1 * np.sign(
             y - target[1])) * self.accel * self.dt  # weighted acceleration that weights to speed of 1
         velx = self.velx + (-x + target[0] + 1 * np.sign(

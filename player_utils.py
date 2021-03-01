@@ -3,7 +3,7 @@
 #   player_utils.py
 
 import random
-
+from copy import deepcopy
 import numpy as np
 
 
@@ -13,7 +13,7 @@ import numpy as np
 
 
 class Player():
-    def __init__(self, identifier, obstacles=[], y=random.randrange(0, 50), x=random.randrange(0, 50), vely=0, velx=0,
+    def __init__(self, identifier, players = [],obstacles=[], y=random.randrange(0, 50), x=random.randrange(0, 50), vely=0, velx=0,
                  radius=1, dt=.1, accel=.2, t=0,
                  color=tuple(random.sample([255, 0, 0], 3))):
         # Check the positional arguments.
@@ -34,12 +34,14 @@ class Player():
         self.color = color
 
         # Pick a valid starting location (if not already given).
+        invalid_starts = deepcopy(self.obstacles)
+        # invalid_starts.extend(self.players)
         while True:
             if not self.x or not self.y:
                 self.y = random.randrange(0, 50)
                 self.x = random.randrange(0, 50)
             counter = 0
-            for obstacle in self.obstacles:
+            for obstacle in invalid_starts :
                 if np.sqrt((self.x - obstacle.x) ** 2 + (self.y - obstacle.y) ** 2) <= obstacle.radius:
                     counter = counter + 1
             if counter == 0:
@@ -47,7 +49,7 @@ class Player():
             self.y = random.randrange(0, 50)
             self.x = random.randrange(0, 50)
 
-    def Walk(self):
+    def Walk(self, players):
         # player randomly walks
         y = self.y + self.vely * self.dt
         x = self.x + self.vely * self.dt
@@ -60,11 +62,24 @@ class Player():
             self.velx = - self.velx
         target = [random.randrange(0, 50), random.randrange(0, 50)]
 
-        for obstacle in self.obstacles:
-            while self.lineIntersectCircle(self.x, target[0], self.y, target[1], obstacle.x, obstacle.y,
-                                           obstacle.radius):
-                target = [random.randrange(0, 50), random.randrange(0, 50)]
-            
+        invalid_objects = deepcopy(self.obstacles)
+        invalid_objects.extend(players)
+        for obstacle in invalid_objects : # if its going to hit the wall or another player, stop
+            if np.sqrt((self.x - obstacle.x) ** 2 + (self.y - obstacle.y) ** 2) <= obstacle.radius:
+                self.velx = -self.velx
+                self.vely = -self.vely
+                return
+
+        while True: # if the target requires going through an obstacle, repick target
+            counter = 0
+            for obstacle in self.obstacles:
+                if self.lineIntersectCircle(self.x, target[0], self.y, target[1], obstacle.x, obstacle.y,
+                                        obstacle.radius):
+                    counter = counter + 1
+            if counter == 0:
+                break 
+            target = [random.randrange(0, 50), random.randrange(0, 50)]
+
         vely = self.vely + (y - target[1] + .25 * np.sign(
             y - target[1])) * self.accel * self.dt  # weighted velocity that weights to speed of .25
         velx = self.velx + (x - target[0] + .25 * np.sign(
