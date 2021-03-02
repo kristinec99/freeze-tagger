@@ -5,7 +5,8 @@
 import random
 
 import matplotlib.pyplot as plt
-
+# import keyboard
+from copy import deepcopy
 from player_utils import Player
 from robot_utils import Robot
 from visualization import *
@@ -17,80 +18,68 @@ from visualization import *
 
 t = 0
 dt = .1
-player_num = 3
-obstacles = []
-players = []
-player_colors = []
+player_num = 5
+constant_obstacles = []
 
 # Start with an M x N size grid
-M = 26
-N = 26
-
-# Define the possible status levels for each state.
-WALL = 0
-UNKNOWN = 1
-ROBOT = 2
-PLAYERS = [i + 3 for i in range(player_num)]
+M = 100
+N = 100
 
 # Initialize states as unknown
-state = np.ones((M, N)) * UNKNOWN
 def main():
+    obstacles = deepcopy(constant_obstacles)
+    players = []
+    current_players = player_num
+    
+    # Set up players
     for i in range(player_num):
+        radius = 1
         player = Player(obstacles=obstacles, players=players, identifier=i,
                         color="#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)]),
-                                            y=random.randrange(0, 50), x=random.randrange(0, 50))
-        player_colors.append(player.color)
+                                            y=random.randrange(0 + radius*2, M - radius*2), x=random.randrange(0 + radius*2, N - radius*2),
+                                            vely=random.randrange(0, 2), velx=random.randrange(0, 2), radius = radius)
         # state[player.y, player.x] = PLAYERS[i]
         players.append(player)
+    
+    # Ask if user wants to enable manual mode.
+    manual_ask = input('Manual Mode y/n \n')
+    while not (manual_ask == 'y') and not (manual_ask == 'n'):
+            manual_ask = input('Manual Mode y/n \n')
+    if manual_ask == 'y':
+        robot = Robot(obstacles=obstacles, players=players, y=25, x=25, manual=True)
+    elif manual_ask == 'n':
+        robot = Robot(obstacles=obstacles, players=players, y=25, x=25, manual=False)
 
-    robot = Robot(obstacles=obstacles, players=players, y=25, x=25)
-    # state[robot.y, robot.x] = ROBOT
+    # Create the figure and axes.
+    v = Visualization()
+    while current_players > 0:
+        for player in players:
+            current_players = player.Walk(players, obstacles, current_players)
+            player.t = player.t + dt
+            # v.showgrid(robot, players)
 
-    # while players:
-    #     plt.close()
+        target = robot.Sensor(players)
+        if not robot.manual:
+            current_players = robot.Drive(target, players, obstacles, current_players)
+        if robot.manual:
+            pressed = [False, False, False, False]
+            try:  # used try so that if user pressed other than the given key error will not be shown
+                if keyboard.is_pressed('w'):  # if key 'w' is pressed 
+                    pressed[0] = True
+                if keyboard.is_pressed('a'):  # if key 'a' is pressed 
+                    pressed[1] = True
+                if keyboard.is_pressed('s'):  # if key 's' is pressed 
+                    pressed[2] = True
+                if keyboard.is_pressed('d'):  # if key 'd' is pressed 
+                    pressed[3] = True
+                break  # finishing the loop
+            except:
+                break  # if user pressed a key other than the given key the loop will break
+            current_players = robot.Drive(target, players, obstacles, current_players, keys_pressed = pressed)
+        robot.t = robot.t + robot.dt
+        v.showgrid(robot, players)
 
-    #     # Create the figure and axes.
-    #     fig, ax = plt.subplots()
-    #     plt.plot([0, 0, 50, 50, 0], [0, 50, 50, 0, 0], color='k', lw=.5)
-    #     ax.set_xlim((0, 50))
-    #     ax.set_ylim((0, 50))
-
-    #     # turn off the axis labels
-    #     ax.axis('off')
-
-    #     for player in players:
-    #         player.Walk(players, obstacles)
-    #         player.t = player.t + dt
-    #         playertoken = plt.Circle((player.x, player.y), radius=player.radius, color=player.color)
-    #         ax.add_artist(playertoken)
-    #         # state[player.y, player.x] = PLAYERS[i]
-    #     for obstacle in obstacles:
-    #         obstacletoken = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius, color='#808080')
-    #         ax.add_artist(obstacletoken)
-    #     target = robot.Sensor(players)
-    #     robot.Drive(target, players, obstacles)
-    #     robottoken = plt.Circle((robot.x, robot.y), radius=robot.radius, color='k')
-    #     ax.add_artist(robottoken)
-    #     plt.show(block=False)
-    #     plt.pause(0.5)
-    #     plt.close()
-    #     # state[robot.y, robot.x] = ROBOT
-    #     # showgrid(state)
-    # # Update/show the grid and show the players and robot.
-    # # showgrid(state)
-
-    # fig, ax = plt.subplots()
-    # plt.plot([0, 0, 50, 50, 0], [0, 50, 50, 0, 0], color='k', lw=.5)
-    # ax.set_xlim((0, 50))
-    # ax.set_ylim((0, 50))
-    # ax.axis('off')
-    # for obstacle in obstacles:
-    #     obstacletoken = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius, color='#808080')
-    #     ax.add_artist(obstacletoken)
-    # robottoken = plt.Circle((robot.x, robot.y), radius=robot.radius, color='k')
-    # ax.add_artist(robottoken)
-    # plt.show()
-    # input = "Press any key to end"
+    input("Press any key to end \n")
 
 if __name__ == "__main__":
-    main()
+    main() 

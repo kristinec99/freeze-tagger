@@ -8,7 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from typing import NamedTuple
-from bot_code import M, N, state, player_colors
+from bot_code import M, N, constant_obstacles
 
 # Turn plot interactive mode on
 plt.ion()
@@ -33,7 +33,7 @@ class Visualization():
     # Initializes a  figure for an M (rows) x N (column) grid.  The X-axis
     #   will be the columns (to the right) and the Y-axis will be the rows
     #   (top downward).
-    def __init__(self, state, player_colors):
+    def __init__(self):
         # Grab the dimensions.
         self.M = M
         self.N = N
@@ -47,91 +47,41 @@ class Visualization():
         plt.xticks([])
         plt.yticks([])
 
-        # Store player colors
-        self.player_colors = player_colors
-
         # Set diameter of circle
-        self.diameter = 1 
+        self.diameter = 2
+
+        # Draw the obstacles in gray colors
+        for obstacle in constant_obstacles:
+                p = Point(obstacle.y, obstacle.x)
+                circ = Circle(p, self.diameter/2, color = '#808080')
+                self.ax.add_patch(circ)
 
         # Force the figure to pop up.
         plt.pause(0.001)
 
     # Updates robot, player, and obstacle positions on the figure.
-    def showgrid(self, state):
+    def showgrid(self, robot, players):
         # Flush figure
-        self.figure.canvas.flush_events()
+        self.ax.patches = []
 
-        # Draw the robot and players
-        for y in range(self.M + 1):
-            for x in range(self.N + 1):
-                # Draw the robot
-                if state[y, x] == ROBOT:
-                    p = Point(y,x)
-                    circ = Circle(p.center(self.diameter), self.diameter/2, color = 'k')
-                    self.ax.add_patch(circ) 
+        # Draw the robot
+        robot_center = Point(robot.y, robot.x)
+        robot_area = Circle(robot_center, self.diameter/2, color = 'k')
+        self.ax.add_patch(robot_area) 
 
-                # Draw the players with the corresponding color
-                for i in self.player_colors:
-                    if state[y, x] == PLAYER[i]:
-                        p = Point(y,x)
-                        circ = Circle(p.center(self.diameter), self.diameter/2, color = self.player_colors[i])
-                        self.ax.add_patch(circ) 
-        
+        # Draw the players with the corresponding color
+        for player in players:
+            # If unfrozen, player has designated color
+            if player.froze == False:
+                p = Point(player.y, player.x)
+                circ = Circle(p, self.diameter/2, color = player.color)
+                self.ax.add_patch(circ) 
+
+            # If frozen, player is gray
+            else:
+                p = Point(player.y, player.x)
+                circ = Circle(p, self.diameter/2, color = '#808080')
+                self.ax.add_patch(circ)
+
         # Force the figure to pop up.
         plt.pause(0.001)
-
-# class DynamicUpdate():
-#     # Grab the dimensions.
-#     M = 26
-#     N = 26
-
-#     def on_launch(self):
-#         # Set up plot
-#         self.figure, self.ax = plt.subplots()
-#         self.lines, = self.ax.plot([],[], 'o')
-        
-#         # Scale axes with known lims
-#         self.ax.set_xlim(0, self.M)
-#         self.ax.set_ylim(0, self.N)
-
-#         # turn off the axis labels and ticks
-#         plt.xticks([])
-#         plt.yticks([])
-
-#     def on_running(self, xdata, ydata):
-#         # Update data (with the new _and_ the old points)
-#         self.lines.set_xdata(xdata)
-#         self.lines.set_ydata(ydata)
-        
-#         # We need to draw *and* flush
-#         self.figure.canvas.draw()
-#         self.figure.canvas.flush_events()
-
-#     # Example
-#     def __call__(self):
-#         import numpy as np
-#         import time
-#         self.on_launch()
-#         xdata = []
-#         ydata = []
-#         for x in np.arange(0,10,0.5):
-#             xdata.append(x)
-#             ydata.append(np.exp(-x**2)+10*np.exp(-(x-7)**2))
-#             if len(xdata) > 1:
-#                 del xdata[0]
-#             if len(ydata) > 1:
-#                 del ydata[0]
-#             self.on_running(xdata, ydata)
-#             time.sleep(0.01)
-#         return xdata, ydata
-
-
-# # Start with an M x N size grid
-# M = 26
-# N = 26
-
-# # Initialize states as unknown
-# state = np.ones((M, N))
-
-# d = DynamicUpdate()
-# d()
