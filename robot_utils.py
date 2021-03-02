@@ -45,8 +45,6 @@ class Robot():
         # Save the obstacles, the initial location, and the probabilities.
         self.dt = dt
         self.t = t
-        self.obstacles = obstacles
-        self.players = players
         self.y = y
         self.vely = vely
         self.x = x
@@ -57,8 +55,8 @@ class Robot():
         self.probProximal = probProximal
 
         # Pick a valid starting location (if not already given).
-        invalid_starts = deepcopy(self.obstacles)
-        invalid_starts.extend(self.players)
+        invalid_starts = deepcopy(obstacles)
+        invalid_starts.extend(players)
         while True:
             if not self.x or not self.y:
                 self.y = random.randrange(0, 50)
@@ -76,7 +74,7 @@ class Robot():
         return (abs((x2 - x1) * cx + (y1 - y2) * cy + (x1 - x2) * y1 + (y2 - y1) * x1) / np.sqrt(
             (x2 - x1) ** 2 + (y2 - y1) ** 2) <= r)
 
-    def Drive(self, target, players):
+    def Drive(self, target, players, obstacles):
         # Check the delta.
 
         # Try to move the robot the given delta.
@@ -97,7 +95,7 @@ class Robot():
 
         while True: # if the target requires going through an obstacle, repick target
             counter = 0
-            for obstacle in self.obstacles:
+            for obstacle in obstacles:
                 if self.lineIntersectCircle(self.x, target[0], self.y, target[1], obstacle.x, obstacle.y,
                                         obstacle.radius):
                     counter = counter + 1
@@ -116,21 +114,19 @@ class Robot():
                 #                            max(self.y, old_target[1]) + abs(self.y - old_target[1]) * .25)]
         
         vely = self.vely + (-y + target[1] + 1 * np.sign(
-            y - target[1])) * self.accel * self.dt  # weighted acceleration that weights to speed of 1
+            y - target[1])) * self.accel * self.dt  # weighted acceleration
         velx = self.velx + (-x + target[0] + 1 * np.sign(
-            x - target[0])) * self.accel * self.dt  # weighted acceleration that weights to speed of 1
+            x - target[0])) * self.accel * self.dt  # weighted acceleration
         self.y = y
         self.x = x
         self.vely = vely
         self.velx = velx
 
-    def Freeze(self, target, players):
+    def Freeze(self, target, players, obstacles):
         for player in players:
             if player.identifier == target[3]:
-                self.obstacles.append(player)
+                obstacles.append(player)
                 players.remove(player)
-        for player in players:
-            player.obstacles = self.obstacles
 
 
     def Sensor(self, players):

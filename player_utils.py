@@ -13,7 +13,7 @@ import numpy as np
 
 
 class Player():
-    def __init__(self, identifier, players = [],obstacles=[], y=random.randrange(0, 50), x=random.randrange(0, 50), vely=0, velx=0,
+    def __init__(self, identifier, players = [], obstacles=[], y=random.randrange(0, 50), x=random.randrange(0, 50), vely=0, velx=0,
                  radius=1, dt=.1, accel=.2, t=0,
                  color=tuple(random.sample([255, 0, 0], 3))):
         # Check the positional arguments.
@@ -23,7 +23,6 @@ class Player():
         # Save the obstacles, the initial location, and the probabilities.
         self.dt = dt
         self.t = t
-        self.obstacles = obstacles
         self.y = y
         self.vely = vely
         self.x = x
@@ -34,14 +33,14 @@ class Player():
         self.color = color
 
         # Pick a valid starting location (if not already given).
-        invalid_starts = deepcopy(self.obstacles)
-        # invalid_starts.extend(self.players)
+        invalid_starts = deepcopy(obstacles)
+        invalid_starts.extend(players)
         while True:
             if not self.x or not self.y:
                 self.y = random.randrange(0, 50)
                 self.x = random.randrange(0, 50)
             counter = 0
-            for obstacle in invalid_starts :
+            for obstacle in invalid_starts:
                 if np.sqrt((self.x - obstacle.x) ** 2 + (self.y - obstacle.y) ** 2) <= obstacle.radius:
                     counter = counter + 1
             if counter == 0:
@@ -49,7 +48,7 @@ class Player():
             self.y = random.randrange(0, 50)
             self.x = random.randrange(0, 50)
 
-    def Walk(self, players):
+    def Walk(self, players, obstacles):
         # player randomly walks
         y = self.y + self.vely * self.dt
         x = self.x + self.vely * self.dt
@@ -62,17 +61,19 @@ class Player():
             self.velx = - self.velx
         target = [random.randrange(0, 50), random.randrange(0, 50)]
 
-        invalid_objects = deepcopy(self.obstacles)
+        invalid_objects = deepcopy(obstacles)
         invalid_objects.extend(players)
         for obstacle in invalid_objects : # if its going to hit the wall or another player, stop
             if np.sqrt((self.x - obstacle.x) ** 2 + (self.y - obstacle.y) ** 2) <= obstacle.radius:
+                if obstacle.identifier >= 0:
+                    Unfreeze(obstacle.identifier, players, obstacles)
                 self.velx = -self.velx
                 self.vely = -self.vely
                 return
 
         while True: # if the target requires going through an obstacle, repick target
             counter = 0
-            for obstacle in self.obstacles:
+            for obstacle in obstacles:
                 if self.lineIntersectCircle(self.x, target[0], self.y, target[1], obstacle.x, obstacle.y,
                                         obstacle.radius):
                     counter = counter + 1
@@ -90,6 +91,14 @@ class Player():
         self.x = x
         self.vely = vely
         self.velx = velx
+
     def lineIntersectCircle(self, x1, x2, y1, y2, cx, cy, r):
         return (abs((x2 - x1) * cx + (y1 - y2) * cy + (x1 - x2) * y1 + (y2 - y1) * x1) / np.sqrt(
             (x2 - x1) ** 2 + (y2 - y1) ** 2) <= r)
+
+    def Unfreeze(self, identifier, players, obstacles):
+        for obstacle in obstacles:
+            if obstacle.identifier == identifier:
+                players.append(obstacle)
+                obstacles.remove(obstacles)
+

@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from typing import NamedTuple
+from bot_code import M, N, state, player_colors
 
 # Turn plot interactive mode on
 plt.ion()
@@ -33,17 +34,18 @@ class Visualization():
     #   will be the columns (to the right) and the Y-axis will be the rows
     #   (top downward).
     def __init__(self, state, player_colors):
+        # Grab the dimensions.
+        self.M = M
+        self.N = N
+        
         # Create the figure and axes.
         self.fig, self.ax = plt.subplots()
-        self.ax.set_xlim((0, M))
-        self.ax.set_ylim((0, N))
-    
-        # Grab the dimensions.
-        self.M = np.size(state, axis=0)
-        self.N = np.size(state, axis=1)
+        self.ax.set_xlim(0, self.M)
+        self.ax.set_ylim(0, self.N)
 
-        # Turn off the axis labels.
-        self.ax.axis('off')
+        # Turn off the axis labels and ticks
+        plt.xticks([])
+        plt.yticks([])
 
         # Store player colors
         self.player_colors = player_colors
@@ -56,9 +58,12 @@ class Visualization():
 
     # Updates robot, player, and obstacle positions on the figure.
     def showgrid(self, state):
+        # Flush figure
+        self.figure.canvas.flush_events()
+
         # Draw the robot and players
-        for y in range(M+1):
-            for x in range(N+1):
+        for y in range(self.M + 1):
+            for x in range(self.N + 1):
                 # Draw the robot
                 if state[y, x] == ROBOT:
                     p = Point(y,x)
