@@ -6,17 +6,15 @@ import random
 from copy import copy
 import numpy as np
 import time
+from game_config import *
 
 #
 #  Player (emulate player movement)
 #
 
-M = 100
-N = 100
-
 class Player():
     def __init__(self, identifier, players = [], obstacles=[], y=random.randrange(0, N), x=random.randrange(0, M), vely=0, velx=0,
-                 radius=1, dt=.1, accel=.05, t=0,
+                 radius=radius, dt=dt, accel=.05, t=0,
                  color=tuple(random.sample([255, 0, 0], 3))):
         # Check the positional arguments.
         assert (y >= 0 + radius) and (y <= N - radius), "Illegal y"
@@ -34,8 +32,8 @@ class Player():
         self.identifier = identifier
         self.color = color
         self.froze = False
+        self.obstacled = False
         self.target = [random.randrange(0 + self.radius*2, M - self.radius*2), random.randrange(0 + self.radius*2, N - self.radius*2)]   
-        self.freezetime = 0
 
         # Pick a valid starting location (if not already given).
         invalid_starts = copy(obstacles)
@@ -53,11 +51,12 @@ class Player():
                 self.y = random.randrange(0 + self.radius*2, M - self.radius*2)
                 self.x = random.randrange(0 + self.radius*2, N - self.radius*2)
 
-    def Walk(self, players, obstacles, current_players):
+    def Walk(self, players, obstacles, current_players, robot):
         # Player randomly walks
         if self.froze:
-            if self.t == self.freezetime:
+            if np.sqrt((self.x - robot.x) ** 2 + (self.y - robot.y) ** 2) > self.radius + robot.radius and not self.obstacled:
                 obstacles.append(self)
+                self.obstacled = True
             return(current_players)
         y = self.y + self.vely * self.dt
         x = self.x + self.velx * self.dt
@@ -79,9 +78,9 @@ class Player():
         
         for obstacle in obstructions: # if its going to hit another player or obstacle, bounce back
             if self.pointIntersectCircle(x, y, obstacle.x, obstacle.y, obstacle.radius + self.radius) and obstacle.identifier != self.identifier:
-                # if obstacle.identifier >= 0 and obstacle.froze == True:
-                    # current_players = self.Unfreeze(obstacle.identifier, players, obstacles, current_players)
-                    # return(current_players)
+                if obstacle.identifier >= 0 and obstacle.froze == True:
+                    current_players = self.Unfreeze(obstacle.identifier, obstacles, current_players)
+                    return(current_players)
 
                 self.velx = -self.velx
                 self.vely = -self.vely
@@ -94,10 +93,10 @@ class Player():
                 # Checks if the player's path to its target goes through an obstacle
                 if obstacle.identifier != self.identifier and self.lineIntersectCircle(obstacle.radius + self.radius, (obstacle.x, obstacle.y), (x,y), (self.target[0], self.target[1])):
                     counter = counter + 1
-                    print(f"path of {self.color} at position ({self.x}, {self.y}) with target ({self.target[0]}, {self.target[1]}) intersects with obstacle {obstacle.color} at position ({obstacle.x}, {obstacle.y})")
+                    #print(f"path of {self.color} at position ({self.x}, {self.y}) with target ({self.target[0]}, {self.target[1]}) intersects with obstacle {obstacle.color} at position ({obstacle.x}, {obstacle.y})")
                 # If the player position is inside an obstacle, move away
-                if obstacle.identifier != self.identifier and self.pointIntersectCircle(x, y, obstacle.x, obstacle.y, obstacle.radius + self.radius):
-                    print(f"{self.color} intersects with obstacle color {obstacle.color}")
+                #if obstacle.identifier != self.identifier and self.pointIntersectCircle(x, y, obstacle.x, obstacle.y, obstacle.radius + self.radius):
+                    #print(f"{self.color} intersects with obstacle color {obstacle.color}")
             if counter == 0:
                 break
             self.target = [random.randrange(max(round(x - self.radius*5), 0 + self.radius), min(round(x + self.radius*5), N - self.radius)), 
@@ -157,12 +156,12 @@ class Player():
     def pointIntersectCircle(self, x, y, cx, cy, r):
         return (np.sqrt((x - cx) ** 2 + (y - cy) ** 2) <= r)
 
-    def Unfreeze(self, identifier, players, obstacles, current_players):
+    def Unfreeze(self, identifier, obstacles, current_players):
         for obstacle in obstacles:
             if obstacle.identifier == identifier:
-                print(identifier)
-                obstacle.froze == False
+                obstacle.froze = False
+                obstacle.obstacled = False
                 obstacles.remove(obstacle)
                 current_players = current_players + 1
                 return(current_players)
-        return(current_players)
+        #return(current_players)

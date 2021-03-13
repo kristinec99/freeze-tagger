@@ -8,7 +8,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from typing import NamedTuple
-from bot_code import M, N, constant_obstacles
+from bot_code import constant_obstacles
+from game_config import *
 
 # Turn plot interactive mode on
 plt.ion()
@@ -48,13 +49,13 @@ class Visualization():
         plt.yticks([])
 
         # Set diameter of circle
-        self.diameter = 2
+        self.radius = radius
 
         # Draw the obstacles in gray colors
         for obstacle in constant_obstacles:
-                p = Point(obstacle.y, obstacle.x)
-                circ = Circle(p, self.diameter/2, color = '#808080')
-                self.ax.add_patch(circ)
+            p = Point(obstacle.y, obstacle.x)
+            circ = Circle(p, self.radius, color = obstacle.color)
+            self.ax.add_patch(circ)
 
         # Force the figure to pop up.
         plt.pause(0.001)
@@ -64,9 +65,15 @@ class Visualization():
         # Flush figure
         self.ax.patches = []
 
+        # Draw the obstacles in gray colors
+        for obstacle in constant_obstacles:
+            p = Point(obstacle.y, obstacle.x)
+            circ = Circle(p, self.radius, color = obstacle.color)
+            self.ax.add_patch(circ)
+
         # Draw the robot
         robot_center = Point(robot.y, robot.x)
-        robot_area = Circle(robot_center, self.diameter/2, color = 'k')
+        robot_area = Circle(robot_center, self.radius, color = 'k')
         self.ax.add_patch(robot_area) 
 
         # Draw the players with the corresponding color
@@ -74,13 +81,13 @@ class Visualization():
             # If unfrozen, player has designated color
             if player.froze == False:
                 p = Point(player.y, player.x)
-                circ = Circle(p, self.diameter/2, color = player.color)
+                circ = Circle(p, self.radius, color = player.color)
                 self.ax.add_patch(circ) 
 
-            # If frozen, player is gray
+            # If frozen, player is ice-blue
             else:
                 p = Point(player.y, player.x)
-                circ = Circle(p, self.diameter/2, color = '#808080')
+                circ = Circle(p, self.radius, color = '#a6e7ff')
                 self.ax.add_patch(circ)
 
         # Force the figure to pop up.

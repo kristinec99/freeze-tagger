@@ -24,7 +24,8 @@
 import random
 from copy import copy
 import numpy as np
-
+import keyboard
+from game_config import *
 
 #
 #  Robot (Emulate the actual robot)
@@ -36,12 +37,9 @@ import numpy as np
 #    fire at a distance of (index+1).
 
 
-M = 100
-N = 100
-
 class Robot():
-    def __init__(self, players = [] ,obstacles=[], y=25, x=25, vely=0, velx=0, radius=1, dt=.1, accel=.1, \
-                 probCmd=1.0, probProximal=[[1.0, 25]], t=0, manual=False):
+    def __init__(self, players = [] , obstacles=[], y=N/2, x=N/2, vely=0, velx=0, radius=radius, dt=dt, accelx=accelx, accely=accely,\
+                 probCmd=1.0, probProximal=[[1.0, robot_sensor_range]], t=0, manual=False, sample = 5):
         # Check the positional arguments.
         assert (y >= 0 + radius) and (y <= N - radius), "Illegal y"
         assert (x >= 0 + radius) and (x <= M - radius), "Illegal x"
@@ -53,11 +51,14 @@ class Robot():
         self.vely = vely
         self.x = x
         self.velx = velx
-        self.accel = accel
+        self.accelx = accelx
+        self.accely = accely
         self.radius = radius
         self.probCmd = probCmd
         self.probProximal = probProximal
         self.manual = manual
+        self.target = [M/2,N/2,-1,1,0,0]
+        self.sample = sample
 
         # Pick a valid starting location (if not already given).
         invalid_starts = copy(obstacles)
@@ -68,7 +69,7 @@ class Robot():
                 self.x = random.randrange(0, M)
             counter = 0
             for obstacle in invalid_starts :
-                if np.sqrt((self.x - obstacle.x) ** 2 + (self.y - obstacle.y) ** 2) <= obstacle.radius:
+                if np.sqrt((self.x - obstacle.x) ** 2 + (self.y - obstacle.y) ** 2) <= obstacle.radius + self.radius:
                     counter = counter + 1
             if counter == 0:
                 break
@@ -94,39 +95,36 @@ class Robot():
         # Check the orthogonal point-to-line distance inside the segment range.
         return ((rx*vy - ry*vx)**2 <= vTv * d**2)
 
-    def Drive(self, target, players, obstacles, current_players, keys_pressed = None):
+    def Drive(self, players, obstacles, current_players, keys_pressed = None):
         # Check the delta.
 
         # Try to move the robot and avoid obstacles            
         y = self.y + self.vely * self.dt
         x = self.x + self.velx * self.dt
         
+        target = self.target
         # Add manual control of robot motion
         if self.manual:
             # If robot is going to hit the wall, emergency break
-            if (y <= 0 + self.radius) or (y > M - self.radius):
-                y = self.y
+            if (y <= 0 + self.radius) or (y > N - self.radius):
                 self.vely = - self.vely
+                return(current_players)
             
             # If robot is going to hit the wall, emergency break
-            if (x <= 0 + self.radius) or (x > N - self.radius):
-                x = self.x
+            if (x <= 0 + self.radius) or (x > M - self.radius):
                 self.velx = - self.velx
-            
+                return(current_players)
             for player in players:
                 # If robot runs into active player, freeze
                 if np.sqrt(np.sqrt((x - player.x) ** 2 + (y - player.y) ** 2)) < player.radius and player.froze == False:
-                    current_players = self.Freeze([player.x, player.y, player.identifier], players, current_players)
+                    current_players = self.Freeze([player.x, player.y, player.radius, player.identifier, player.velx, player.vely], players, obstacles, current_players)
                     return(current_players)
             
             for obstacle in obstacles:
-                # If robot is going to hit the wall or another player, stop
-                if np.sqrt((x - obstacle.x) ** 2 + (y - obstacle.y) ** 2) <= obstacle.radius + self.radius:
-                    self.velx = - self.velx
-                    self.vely = - self.vely
-                    x = self.x
-                    y = self.y
-                    return
+                if np.sqrt((x - obstacle.x) ** 2 + (y - obstacle.y) ** 2) <= obstacle.radius + self.radius: # if its going to hit a frozen player bounce back
+                        self.velx = -self.velx
+                        self.vely = -self.vely
+                        return(current_players)
             
             # Add velocity changes due to key input
             if (keys_pressed[0]):
@@ -139,21 +137,21 @@ class Robot():
                 self.velx = self.velx + .1
             self.y = y
             self.x = x
-
+            return(current_players)
         # Automatic control of robot
         else:
-            if not target:
-                target = [random.randrange(0 + self.radius*2, M - self.radius*2), random.randrange(0 + self.radius*2, N - self.radius*2), 1, -1]
+            if not self.target:
+                self.target = [random.randrange(0 + self.radius*2, M - self.radius*2), random.randrange(0 + self.radius*2, N - self.radius*2), 1, -1, 0, 0]
+            target = self.target
             if (y <= 0 + self.radius) or (y > N - self.radius):  # if its going to hit the wall, emergency break
-                y = self.y
                 self.vely = - self.vely
+                return(current_players)
             if (x <= 0 + self.radius) or (x > M - self.radius):  # if its going to hit the wall, emergency break
-                x = self.x
                 self.velx = - self.velx
+                return(current_players)
             if np.sqrt(np.sqrt((x - target[0]) ** 2 + (y - target[1]) ** 2)) < target[2] and target[3] >= 0: # if robot runs into active player, freeze
                 current_players = self.Freeze(target, players, obstacles, current_players)
                 return (current_players)
-            # target = [random.randrange(0 + self.radius*2, N - self.radius*2), random.randrange(0 + self.radius*2, M - self.radius*2)]
 
             for obstacle in obstacles:
                 if np.sqrt((x - obstacle.x) ** 2 + (y - obstacle.y) ** 2) <= obstacle.radius + self.radius: # if its going to hit a frozen player bounce back
@@ -161,25 +159,34 @@ class Robot():
                         self.vely = -self.vely
                         return(current_players)
 
-            while True: # if the target requires going through an obstacle, repick target
-                counter = 0
-                for obstacle in obstacles:
-                    if self.lineIntersectCircle(obstacle.radius + self.radius, (obstacle.x, obstacle.y), (x,y), (self.target[0], self.target[1])):
-                        counter = counter + 1
-                        break
-                if counter == 0:
-                    break 
-                target = [random.randrange(0 + self.radius*2, M - self.radius*2), random.randrange(0 + self.radius*2, N - self.radius*2), 1, -1]
-                    # old_target = target
-                    # target = [random.randrange(min(self.x, old_target[0]) - abs(self.x - old_target[0]) * .25,
-                    #                            max(self.x, old_target[0]) + abs(self.x - old_target[0]) * .25),
-                    #           random.randrange(min(self.y, old_target[1]) - abs(self.y - old_target[1]) * .25,
-                    #                            max(self.y, old_target[1]) + abs(self.y - old_target[1]) * .25)]
+            counter = 0
+            for obstacle in obstacles:
+                if self.lineIntersectCircle(obstacle.radius + self.radius, (obstacle.x, obstacle.y), (x,y), (target[0], target[1])):
+                    counter = counter + 1
+                    break
+            if counter != 0:
+                targets = []
+                while len(targets) <= self.sample:
+                    target_choice = [random.randrange(max(round(x - self.radius*5), 0 + self.radius), min(round(x + self.radius*5), N - self.radius)), 
+                           random.randrange(max(round(y - self.radius*5), 0 + self.radius), min(round(y + self.radius*5), M - self.radius)), 1, -1, 0, 0]
+                    counter = 0
+                    for obstacle in obstacles:
+                        if self.lineIntersectCircle(obstacle.radius + self.radius, (obstacle.x, obstacle.y), (x,y), (target_choice[0], target_choice[1])):
+                            counter = counter + 1
+                            break
+                    if counter == 0:
+                        targets.append(target_choice)
+                target = targets[0]
+                print(self.target[0])
+                for target_choice in targets:
+                    if ((self.target[0]  - target_choice[0])**2 + (self.target[1] - target_choice[1])**2) < ((self.target[0] - target[0])**2 + (self.target[1] - target[1])**2):
+                        target = target_choice
 
-            vely = self.vely + (-y + target[1] + 1 * np.sign(
-                y - target[1])) * self.accel * self.dt  # weighted acceleration
-            velx = self.velx + (-x + target[0] + 1 * np.sign(
-                x - target[0])) * self.accel * self.dt  # weighted acceleration
+
+            self.accelx = 2/T * (target[4] - self.velx) + 1/T**2 * (target[0] - self.x)
+            self.accely = 2/T * (target[5] - self.vely) + 1/T**2 * (target[1] - self.y)
+            vely = self.vely + self.accely * self.dt  # weighted acceleration
+            velx = self.velx + self.accelx * self.dt  # weighted acceleration
             self.y = y
             self.x = x
             self.vely = vely
@@ -191,16 +198,14 @@ class Robot():
             # If robot passes through target, then freeze player
             if player.identifier == target[3]:
                 player.froze = True
-                player.freezetime = player.t + 1
                 current_players = current_players - 1
                 return(current_players)
             
-            # If robot passes through player, then freeze player
-            if np.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2) <= player.radius + self.radius:
-                player.froze = True
-                player.freezetime = player.t + 1
-                current_players = current_players - 1
-                return(current_players)
+            # # If robot passes through player, then freeze player
+            # if np.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2) <= player.radius + self.radius:
+            #     player.froze = True
+            #     current_players = current_players - 1
+            #     return(current_players)
         return(current_players)
 
 
@@ -211,5 +216,8 @@ class Robot():
                 for k in range(len(self.probProximal)):
                     if np.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2) - player.radius <= self.probProximal[k][1]:
                         if not closest or np.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2) < np.sqrt((self.x - closest[0]) ** 2 + (self.y - closest[1]) ** 2):
-                            closest = [player.x, player.y, player.radius, player.identifier]
+                            closest = [player.x, player.y, player.radius, player.identifier, player.velx, player.vely]
         return closest
+    
+    def pointIntersectCircle(self, x, y, cx, cy, r):
+        return (np.sqrt((x - cx) ** 2 + (y - cy) ** 2) <= r)
