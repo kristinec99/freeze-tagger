@@ -2,14 +2,14 @@ import random
 
 t = 0
 dt = .1
-player_num = random.randrange(5, 15)
-obstacles_num = random.randrange(5, 8)
+player_num = random.randrange(20, 25)
+obstacles_num = random.randrange(3, 5)
 
 
 # Start with an M x N size grid with robots/players of a specified radius 
 M = 100
 N = 100
-radius = 2
+radius = 1
 
 # Robot Settings
 robot_sensor_range = 200

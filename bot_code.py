@@ -21,6 +21,7 @@ from game_config import *
 def main():
     obstacles = deepcopy(constant_obstacles)
     players = []
+    frozen_players = []
     current_players = player_num
     
     # Set up players
@@ -33,41 +34,41 @@ def main():
         players.append(player)
     
     # Ask if user wants to enable manual mode.
-    manual_ask = input('Manual Mode y/n \n')
-    while not (manual_ask == 'y') and not (manual_ask == 'n'):
-            manual_ask = input('Manual Mode y/n \n')
-    if manual_ask == 'y':
-        robot = Robot(obstacles=obstacles, players=players, manual=True)
-    elif manual_ask == 'n':
-        robot = Robot(obstacles=obstacles, players=players, manual=False, sample=sample)
+    # manual_ask = input('Manual Mode y/n \n')
+    # while not (manual_ask == 'y') and not (manual_ask == 'n'):
+    #         manual_ask = input('Manual Mode y/n \n')
+    # if manual_ask == 'y':
+    #     robot = Robot(obstacles=obstacles, players=players, manual=True)
+    # elif manual_ask == 'n':
+    robot = Robot(obstacles=obstacles, players=players, manual=False, sample=sample)
 
     # Create the figure and axes.
     v = Visualization()
     while current_players > 0:
         for player in players:
-            current_players = player.Walk(players, obstacles, current_players, robot)
+            current_players, frozen_players = player.Walk(players, obstacles, current_players, robot, frozen_players)
             player.t = player.t + dt
             # v.showgrid(robot, players)
 
         target = robot.Sensor(players)
         robot.target = target
-        if not robot.manual:
-            current_players = robot.Drive(players, obstacles, current_players)
-        if robot.manual:
-            pressed = [False, False, False, False]
-            try:  # used try so that if user pressed other than the given key error will not be shown
-                if keyboard.is_pressed('w'):  # if key 'w' is pressed 
-                    pressed[0] = True
-                if keyboard.is_pressed('a'):  # if key 'a' is pressed 
-                    pressed[1] = True
-                if keyboard.is_pressed('s'):  # if key 's' is pressed 
-                    pressed[2] = True
-                if keyboard.is_pressed('d'):  # if key 'd' is pressed 
-                    pressed[3] = True
-                break  # finishing the loop
-            except:
-                break  # if user pressed a key other than the given key the loop will break
-            current_players = robot.Drive(players, obstacles, current_players, keys_pressed = pressed)
+        # if not robot.manual:
+        current_players, frozen_players = robot.Drive(players, obstacles, current_players, frozen_players)
+        # if robot.manual:
+        #     pressed = [False, False, False, False]
+        #     try:  # used try so that if user pressed other than the given key error will not be shown
+        #         if keyboard.is_pressed('w'):  # if key 'w' is pressed 
+        #             pressed[0] = True
+        #         if keyboard.is_pressed('a'):  # if key 'a' is pressed 
+        #             pressed[1] = True
+        #         if keyboard.is_pressed('s'):  # if key 's' is pressed 
+        #             pressed[2] = True
+        #         if keyboard.is_pressed('d'):  # if key 'd' is pressed 
+        #             pressed[3] = True
+        #         break  # finishing the loop
+        #     except:
+        #         break  # if user pressed a key other than the given key the loop will break
+        #     current_players = robot.Drive(players, obstacles, current_players)
         robot.t = robot.t + robot.dt
         v.showgrid(robot, players)
 
