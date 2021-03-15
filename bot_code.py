@@ -5,7 +5,7 @@
 import random
 
 import matplotlib.pyplot as plt
-import keyboard
+#import keyboard
 from copy import deepcopy
 from player_utils import Player
 from robot_utils import Robot
